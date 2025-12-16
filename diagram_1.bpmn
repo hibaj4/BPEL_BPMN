@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_commande" 
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_Service_Client" name="Service Client" processRef="Process_1" />
+    <bpmn:participant id="Participant_Service_Ventes" name="Service ventes" processRef="Process_2" />
+    <bpmn:participant id="Participant_Service_Livraison" name="Service livraison/ Paiement" processRef="Process_3" />
+    <bpmn:participant id="Participant_Service_Comptabilite" name="Service comptabilité" processRef="Process_4" />
+    <bpmn:participant id="Participant_Banque_Livraison" name="Banque/Livraison" processRef="Process_5" />
+    <bpmn:participant id="Participant_Service_Email" name="Service mail" processRef="Process_6" />
+    
+    <!-- Flux de messages entre les pools -->
+    <bpmn:messageFlow id="MessageFlow_1" sourceRef="Gateway_Client_Authentifie" targetRef="Task_Controler_Disponibilite" name="OUI" />
+    <bpmn:messageFlow id="MessageFlow_2" sourceRef="Gateway_Stock_Disponible" targetRef="Task_Effectuer_Paiement" name="OUI" />
+    <bpmn:messageFlow id="MessageFlow_3" sourceRef="Gateway_Paiement_Accepte" targetRef="Task_Creer_Commande" name="OUI" />
+    <bpmn:messageFlow id="MessageFlow_4" sourceRef="Task_Creer_Commande" targetRef="Task_Programmer_Expedition" />
+    <bpmn:messageFlow id="MessageFlow_5" sourceRef="Task_Programmer_Expedition" targetRef="Task_Envoyer_Email" />
+  </bpmn:collaboration>
+  
+  <!-- Process 1: Service Client -->
+  <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="Réception demande de commande">
+      <bpmn:outgoing>Flow_1_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_Verification" name="Vérifier l'identité du client">
+      <bpmn:incoming>Flow_1_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_1_2</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:exclusiveGateway id="Gateway_Client_Authentifie" name="Client authentifié ?">
+      <bpmn:incoming>Flow_1_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_1_3_NON</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1_3_OUI</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:endEvent id="EndEvent_1_Rejet" name="Fin: Demande authentifié">
+      <bpmn:incoming>Flow_1_3_NON</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_1_1" sourceRef="StartEvent_1" targetRef="Task_Verification" />
+    <bpmn:sequenceFlow id="Flow_1_2" sourceRef="Task_Verification" targetRef="Gateway_Client_Authentifie" />
+    <bpmn:sequenceFlow id="Flow_1_3_NON" name="NON" sourceRef="Gateway_Client_Authentifie" targetRef="EndEvent_1_Rejet" />
+    <bpmn:sequenceFlow id="Flow_1_3_OUI" name="OUI" sourceRef="Gateway_Client_Authentifie" targetRef="EndGateway_1" />
+    
+    <bpmn:endEvent id="EndGateway_1">
+      <bpmn:incoming>Flow_1_3_OUI</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  
+  <!-- Process 2: Service Ventes -->
+  <bpmn:process id="Process_2" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_2">
+      <bpmn:outgoing>Flow_2_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_Controler_Disponibilite" name="Contrôler disponibilité des produits">
+      <bpmn:incoming>Flow_2_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_2_1</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:exclusiveGateway id="Gateway_Stock_Disponible" name="Stock disponible ?">
+      <bpmn:incoming>Flow_2_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2_2_NON</bpmn:outgoing>
+      <bpmn:outgoing>Flow_2_2_OUI</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:endEvent id="EndEvent_2_Stock" name="Fin: Produit indisponible">
+      <bpmn:incoming>Flow_2_2_NON</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_2_0" sourceRef="StartEvent_2" targetRef="Task_Controler_Disponibilite" />
+    <bpmn:sequenceFlow id="Flow_2_1" sourceRef="Task_Controler_Disponibilite" targetRef="Gateway_Stock_Disponible" />
+    <bpmn:sequenceFlow id="Flow_2_2_NON" name="NON" sourceRef="Gateway_Stock_Disponible" targetRef="EndEvent_2_Stock" />
+    <bpmn:sequenceFlow id="Flow_2_2_OUI" name="OUI" sourceRef="Gateway_Stock_Disponible" targetRef="EndGateway_2" />
+    
+    <bpmn:endEvent id="EndGateway_2">
+      <bpmn:incoming>Flow_2_2_OUI</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  
+  <!-- Process 3: Service Livraison/Paiement -->
+  <bpmn:process id="Process_3" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_3">
+      <bpmn:outgoing>Flow_3_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_Effectuer_Paiement" name="Effectuer le paiement">
+      <bpmn:incoming>Flow_3_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_3_1</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:exclusiveGateway id="Gateway_Paiement_Accepte" name="Paiement accepté ?">
+      <bpmn:incoming>Flow_3_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_3_2_NON</bpmn:outgoing>
+      <bpmn:outgoing>Flow_3_2_OUI</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <bpmn:endEvent id="EndEvent_3_Paiement" name="Fin: Paiement échoué">
+      <bpmn:incoming>Flow_3_2_NON</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_3_0" sourceRef="StartEvent_3" targetRef="Task_Effectuer_Paiement" />
+    <bpmn:sequenceFlow id="Flow_3_1" sourceRef="Task_Effectuer_Paiement" targetRef="Gateway_Paiement_Accepte" />
+    <bpmn:sequenceFlow id="Flow_3_2_NON" name="NON" sourceRef="Gateway_Paiement_Accepte" targetRef="EndEvent_3_Paiement" />
+    <bpmn:sequenceFlow id="Flow_3_2_OUI" name="OUI" sourceRef="Gateway_Paiement_Accepte" targetRef="EndGateway_3" />
+    
+    <bpmn:endEvent id="EndGateway_3">
+      <bpmn:incoming>Flow_3_2_OUI</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  
+  <!-- Process 4: Service Comptabilité -->
+  <bpmn:process id="Process_4" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_4">
+      <bpmn:outgoing>Flow_4_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_Creer_Commande" name="Créer la commande dans le système interne">
+      <bpmn:incoming>Flow_4_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_4_1</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:sequenceFlow id="Flow_4_0" sourceRef="StartEvent_4" targetRef="Task_Creer_Commande" />
+    <bpmn:sequenceFlow id="Flow_4_1" sourceRef="Task_Creer_Commande" targetRef="EndEvent_4" />
+    
+    <bpmn:endEvent id="EndEvent_4">
+      <bpmn:incoming>Flow_4_1</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  
+  <!-- Process 5: Banque/Livraison -->
+  <bpmn:process id="Process_5" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_5">
+      <bpmn:outgoing>Flow_5_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_Programmer_Expedition" name="Programmer l'expédition">
+      <bpmn:incoming>Flow_5_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_5_1</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:sequenceFlow id="Flow_5_0" sourceRef="StartEvent_5" targetRef="Task_Programmer_Expedition" />
+    <bpmn:sequenceFlow id="Flow_5_1" sourceRef="Task_Programmer_Expedition" targetRef="EndEvent_5" />
+    
+    <bpmn:endEvent id="EndEvent_5">
+      <bpmn:incoming>Flow_5_1</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  
+  <!-- Process 6: Service Mail -->
+  <bpmn:process id="Process_6" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_6">
+      <bpmn:outgoing>Flow_6_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <bpmn:task id="Task_Envoyer_Email" name="Envoyer un email de confirmation au client">
+      <bpmn:incoming>Flow_6_0</bpmn:incoming>
+      <bpmn:outgoing>Flow_6_1</bpmn:outgoing>
+    </bpmn:task>
+    
+    <bpmn:endEvent id="EndEvent_6" name="Commande validée et confirmée au client">
+      <bpmn:incoming>Flow_6_1</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <bpmn:sequenceFlow id="Flow_6_0" sourceRef="StartEvent_6" targetRef="Task_Envoyer_Email" />
+    <bpmn:sequenceFlow id="Flow_6_1" sourceRef="Task_Envoyer_Email" targetRef="EndEvent_6" />
+  </bpmn:process>
+  
+  <!-- Diagramme BPMN avec positionnement -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      
+      <!-- Pool 1: Service Client -->
+      <bpmndi:BPMNShape id="Participant_Service_Client_di" bpmnElement="Participant_Service_Client" isHorizontal="true">
+        <dc:Bounds x="30" y="30" width="1180" height="120" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="82" y="72" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Verification_di" bpmnElement="Task_Verification">
+        <dc:Bounds x="180" y="50" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_Client_Authentifie_di" bpmnElement="Gateway_Client_Authentifie" isMarkerVisible="true">
+        <dc:Bounds x="335" y="65" width="40" height="40" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_1_Rejet_di" bpmnElement="EndEvent_1_Rejet">
+        <dc:Bounds x="427" y="45" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_1_1_di" bpmnElement="Flow_1_1">
+        <di:waypoint x="118" y="90" />
+        <di:waypoint x="180" y="80" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_1_2_di" bpmnElement="Flow_1_2">
+        <di:waypoint x="280" y="80" />
+        <di:waypoint x="335" y="85" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_1_3_NON_di" bpmnElement="Flow_1_3_NON">
+        <di:waypoint x="355" y="65" />
+        <di:waypoint x="427" y="63" />
+      </bpmndi:BPMNEdge>
+      
+      <!-- Pool 2: Service Ventes -->
+      <bpmndi:BPMNShape id="Participant_Service_Ventes_di" bpmnElement="Participant_Service_Ventes" isHorizontal="true">
+        <dc:Bounds x="30" y="160" width="1180" height="120" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Controler_Disponibilite_di" bpmnElement="Task_Controler_Disponibilite">
+        <dc:Bounds x="410" y="185" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_Stock_Disponible_di" bpmnElement="Gateway_Stock_Disponible" isMarkerVisible="true">
+        <dc:Bounds x="565" y="195" width="40" height="40" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_2_Stock_di" bpmnElement="EndEvent_2_Stock">
+        <dc:Bounds x="657" y="165" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_2_1_di" bpmnElement="Flow_2_1">
+        <di:waypoint x="510" y="215" />
+        <di:waypoint x="565" y="215" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_2_2_NON_di" bpmnElement="Flow_2_2_NON">
+        <di:waypoint x="585" y="195" />
+        <di:waypoint x="657" y="183" />
+      </bpmndi:BPMNEdge>
+      
+      <!-- Pool 3: Service Livraison/Paiement -->
+      <bpmndi:BPMNShape id="Participant_Service_Livraison_di" bpmnElement="Participant_Service_Livraison" isHorizontal="true">
+        <dc:Bounds x="30" y="290" width="1180" height="120" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Effectuer_Paiement_di" bpmnElement="Task_Effectuer_Paiement">
+        <dc:Bounds x="640" y="315" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_Paiement_Accepte_di" bpmnElement="Gateway_Paiement_Accepte" isMarkerVisible="true">
+        <dc:Bounds x="795" y="325" width="40" height="40" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_3_Paiement_di" bpmnElement="EndEvent_3_Paiement">
+        <dc:Bounds x="887" y="295" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_3_1_di" bpmnElement="Flow_3_1">
+        <di:waypoint x="740" y="345" />
+        <di:waypoint x="795" y="345" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_3_2_NON_di" bpmnElement="Flow_3_2_NON">
+        <di:waypoint x="815" y="325" />
+        <di:waypoint x="887" y="313" />
+      </bpmndi:BPMNEdge>
+      
+      <!-- Pool 4: Service Comptabilité -->
+      <bpmndi:BPMNShape id="Participant_Service_Comptabilite_di" bpmnElement="Participant_Service_Comptabilite" isHorizontal="true">
+        <dc:Bounds x="30" y="420" width="1180" height="100" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Creer_Commande_di" bpmnElement="Task_Creer_Commande">
+        <dc:Bounds x="870" y="440" width="110" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Pool 5: Banque/Livraison -->
+      <bpmndi:BPMNShape id="Participant_Banque_Livraison_di" bpmnElement="Participant_Banque_Livraison" isHorizontal="true">
+        <dc:Bounds x="30" y="530" width="1180" height="100" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Programmer_Expedition_di" bpmnElement="Task_Programmer_Expedition">
+        <dc:Bounds x="990" y="550" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <!-- Pool 6: Service Mail -->
+      <bpmndi:BPMNShape id="Participant_Service_Email_di" bpmnElement="Participant_Service_Email" isHorizontal="true">
+        <dc:Bounds x="30" y="640" width="1180" height="100" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Task_Envoyer_Email_di" bpmnElement="Task_Envoyer_Email">
+        <dc:Bounds x="1090" y="660" width="100" height="60" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_6_di" bpmnElement="EndEvent_6">
+        <dc:Bounds x="1232" y="672" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNEdge id="Flow_6_1_di" bpmnElement="Flow_6_1">
+        <di:waypoint x="1190" y="690" />
+        <di:waypoint x="1232" y="690" />
+      </bpmndi:BPMNEdge>
+      
+      <!-- Message Flows entre pools -->
+      <bpmndi:BPMNEdge id="MessageFlow_1_di" bpmnElement="MessageFlow_1">
+        <di:waypoint x="355" y="105" />
+        <di:waypoint x="355" y="215" />
+        <di:waypoint x="410" y="215" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="MessageFlow_2_di" bpmnElement="MessageFlow_2">
+        <di:waypoint x="585" y="235" />
+        <di:waypoint x="585" y="345" />
+        <di:waypoint x="640" y="345" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="MessageFlow_3_di" bpmnElement="MessageFlow_3">
+        <di:waypoint x="815" y="365" />
+        <di:waypoint x="815" y="470" />
+        <di:waypoint x="870" y="470" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="MessageFlow_4_di" bpmnElement="MessageFlow_4">
+        <di:waypoint x="925" y="500" />
+        <di:waypoint x="925" y="580" />
+        <di:waypoint x="990" y="580" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="MessageFlow_5_di" bpmnElement="MessageFlow_5">
+        <di:waypoint x="1040" y="610" />
+        <di:waypoint x="1040" y="690" />
+        <di:waypoint x="1090" y="690" />
+      </bpmndi:BPMNEdge>
+      
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  
+</bpmn:definitions>
